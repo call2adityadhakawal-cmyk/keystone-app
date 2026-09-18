@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KEYSTONE — Field Service Management</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="sidebar">
+    <div class="brand"><span class="dot"></span> KEYSTONE</div>
+    <div class="nav-item active" data-view="board" onclick="showView('board')">Work Order Board</div>
+    <div class="nav-item" data-view="dashboard" onclick="showView('dashboard')" id="navDashboard">Dashboard</div>
+
+    <div class="sidebar-footer">
+      <div class="role-tag" id="roleTag">ROLE</div>
+      <div class="who" id="whoTag">Name</div>
+      <button class="btn-signout" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- Board view -->
+    <div id="viewBoard">
+      <div class="page-header">
+        <div>
+          <div class="page-eyebrow">Dispatch</div>
+          <h1 class="page-title">Work Order Board</h1>
+        </div>
+        <div class="toolbar">
+          <button class="btn-accent" id="newWorkOrderBtn" onclick="openCreateModal()">+ New work order</button>
+        </div>
+      </div>
+      <div class="board" id="board"></div>
+    </div>
+
+    <!-- Dashboard view -->
+    <div id="viewDashboard" class="hidden">
+      <div class="page-header">
+        <div>
+          <div class="page-eyebrow">Operations</div>
+          <h1 class="page-title">Dashboard</h1>
+        </div>
+      </div>
+      <div class="stat-grid" id="statGrid"></div>
+      <div class="stat-card" style="max-width:520px;">
+        <div class="stat-label" style="margin-bottom:14px;">Work orders by status</div>
+        <div id="statusBars"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Create work order modal -->
+<div class="modal-backdrop hidden" id="createModalBackdrop">
+  <div class="modal">
+    <h3>Raise a work order</h3>
+    <div class="modal-sub">Enters the pipeline as NEW and gets an SLA due date from its priority.</div>
+    <form id="createForm">
+      <label>Customer</label>
+      <select id="createCustomer" required></select>
+      <label>Site</label>
+      <select id="createSite" required></select>
+      <label>Title</label>
+      <input id="createTitle" required placeholder="e.g. AC not working">
+      <label>Description</label>
+      <textarea id="createDescription" rows="3" placeholder="What's wrong, and where"></textarea>
+      <label>Priority</label>
+      <select id="createPriority">
+        <option value="LOW">Low</option>
+        <option value="MEDIUM" selected>Medium</option>
+        <option value="HIGH">High</option>
+        <option value="URGENT">Urgent</option>
+      </select>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeCreateModal()">Cancel</button>
+        <button type="submit" class="btn-accent">Raise work order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Work order detail modal -->
+<div class="modal-backdrop hidden" id="detailModalBackdrop">
+  <div class="modal" id="detailModalBody"></div>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

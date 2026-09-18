@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Create an account — KEYSTONE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="auth-page">
+
+  <aside class="auth-aside">
+    <div>
+      <div class="brand"><span class="dot"></span> KEYSTONE</div>
+      <h2 class="auth-headline">Get set up in under a minute.</h2>
+      <p class="auth-lede">
+        Create the account that matches how you use KEYSTONE. You can start working
+        as soon as you have signed up.
+      </p>
+      <ul class="auth-points">
+        <li><strong>Customers</strong> raise jobs for their sites and track progress</li>
+        <li><strong>Technicians</strong> pick up assigned jobs and update them from the field</li>
+        <li>Dispatcher and manager access is issued by an administrator</li>
+      </ul>
+    </div>
+    <div class="auth-footnote">© Meridian Facilities · Project KEYSTONE</div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <h1>Create your account</h1>
+      <p class="auth-sub">Already have one? <a href="/index.html">Sign in instead</a>.</p>
+
+      <form id="registerForm" autocomplete="on">
+
+        <label>Account type</label>
+        <div class="role-picker">
+          <label class="role-option selected" data-role="CUSTOMER">
+            <input type="radio" name="role" value="CUSTOMER" checked>
+            <div class="role-name">Customer</div>
+            <div class="role-desc">Raise and track jobs for your company's sites.</div>
+          </label>
+          <label class="role-option" data-role="TECHNICIAN">
+            <input type="radio" name="role" value="TECHNICIAN">
+            <div class="role-name">Technician</div>
+            <div class="role-desc">Work the jobs assigned to you in the field.</div>
+          </label>
+        </div>
+
+        <label for="name">Full name</label>
+        <input id="name" name="name" type="text" placeholder="e.g. Radha Menon"
+               autocomplete="name" maxlength="100" required autofocus>
+
+        <div id="companyField">
+          <label for="companyName">Company / organisation</label>
+          <input id="companyName" name="companyName" type="text" placeholder="e.g. Meridian Retail Group"
+                 autocomplete="organization" maxlength="120">
+          <div class="field-hint">
+            If your company is already on KEYSTONE, type the exact name and we'll link you to it.
+          </div>
+        </div>
+
+        <label for="email">Work email</label>
+        <input id="email" name="email" type="email" placeholder="you@company.com"
+               autocomplete="email" required>
+
+        <label for="password">Password</label>
+        <div class="password-row">
+          <input id="password" name="password" type="password" placeholder="At least 8 characters"
+                 autocomplete="new-password" minlength="8" required>
+          <button type="button" class="password-toggle" data-target="password">Show</button>
+        </div>
+        <div class="field-hint">Minimum 8 characters, with at least one letter and one number.</div>
+
+        <label for="confirmPassword">Confirm password</label>
+        <div class="password-row">
+          <input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter your password"
+                 autocomplete="new-password" required>
+          <button type="button" class="password-toggle" data-target="confirmPassword">Show</button>
+        </div>
+
+        <button class="btn-primary" type="submit" id="submitBtn">Create account</button>
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
+      </form>
+
+      <div class="auth-alt">
+        Need dispatcher or manager access? Ask your KEYSTONE administrator.
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// Already signed in? no reason to be on the sign-up page.
+if (localStorage.getItem('keystone_token')) {
+  window.location.replace('/app.html');
+}
+
+var companyField = document.getElementById('companyField');
+var companyInput = document.getElementById('companyName');
+
+function selectedRole() {
+  return document.querySelector('input[name="role"]:checked').value;
+}
+
+function syncRoleUi() {
+  var role = selectedRole();
+  document.querySelectorAll('.role-option').forEach(function (option) {
+    option.classList.toggle('selected', option.dataset.role === role);
+  });
+  var isCustomer = role === 'CUSTOMER';
+  companyField.classList.toggle('hidden', !isCustomer);
+  companyInput.required = isCustomer;
+  if (!isCustomer) { companyInput.value = ''; }
+}
+
+document.querySelectorAll('input[name="role"]').forEach(function (radio) {
+  radio.addEventListener('change', syncRoleUi);
+});
+syncRoleUi();
+
+document.querySelectorAll('.password-toggle').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var input = document.getElementById(btn.dataset.target);
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.textContent = showing ? 'Show' : 'Hide';
+  });
+});
+
+function firstFieldError(body) {
+  if (!body || !body.fieldErrors) { return null; }
+  var keys = Object.keys(body.fieldErrors);
+  return keys.length ? body.fieldErrors[keys[0]] : null;
+}
+
+document.getElementById('registerForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  var errorMsg = document.getElementById('errorMsg');
+  var successMsg = document.getElementById('successMsg');
+  var submitBtn = document.getElementById('submitBtn');
+  errorMsg.style.display = 'none';
+
+  var password = document.getElementById('password').value;
+  var confirmPassword = document.getElementById('confirmPassword').value;
+  if (password !== confirmPassword) {
+    errorMsg.textContent = 'The two passwords do not match.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  var payload = {
+    name: document.getElementById('name').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    password: password,
+    role: selectedRole(),
+    companyName: companyInput.value.trim()
+  };
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating account…';
+
+  try {
+    var res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      var body = await res.json().catch(function () { return {}; });
+      throw new Error(firstFieldError(body) || body.message || 'Sign-up failed');
+    }
+    var data = await res.json();
+
+    // Registration signs the new user in, so go straight into the app.
+    localStorage.setItem('keystone_token', data.token);
+    localStorage.setItem('keystone_user', JSON.stringify(data));
+
+    successMsg.textContent = 'Account created. Taking you to KEYSTONE…';
+    successMsg.style.display = 'block';
+    window.location.href = '/app.html';
+  } catch (err) {
+    errorMsg.textContent = err.message;
+    errorMsg.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create account';
+  }
+});
+</script>
+</body>
+</html>

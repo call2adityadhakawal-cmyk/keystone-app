@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in — KEYSTONE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="auth-page">
+
+  <aside class="auth-aside">
+    <div>
+      <div class="brand"><span class="dot"></span> KEYSTONE</div>
+      <h2 class="auth-headline">Field service, under control.</h2>
+      <p class="auth-lede">
+        One governed work-order lifecycle for Meridian Facilities — from the moment a job is
+        raised to the moment it is closed out.
+      </p>
+      <ul class="auth-points">
+        <li>Raise a job and follow it through every status change</li>
+        <li>Dispatchers assign, technicians update from the field</li>
+        <li>Managers see SLA health across every site at a glance</li>
+      </ul>
+    </div>
+    <div class="auth-footnote">© Meridian Facilities · Project KEYSTONE</div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <h1>Sign in</h1>
+      <p class="auth-sub">Welcome back. Enter your details to continue.</p>
+
+      <form id="loginForm" autocomplete="on">
+        <label for="email">Work email</label>
+        <input id="email" name="email" type="email" placeholder="you@company.com"
+               autocomplete="username" required autofocus>
+
+        <label for="password">Password</label>
+        <div class="password-row">
+          <input id="password" name="password" type="password" placeholder="Your password"
+                 autocomplete="current-password" required>
+          <button type="button" class="password-toggle" data-target="password">Show</button>
+        </div>
+
+        <button class="btn-primary" type="submit" id="submitBtn">Sign in</button>
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
+      </form>
+
+      <div class="auth-alt">
+        New to KEYSTONE? <a href="/register.html">Create an account</a>
+      </div>
+
+      <div class="auth-note">
+        Customer and technician accounts can be created here. Dispatcher and manager
+        access is issued by your administrator.
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// Already signed in? go straight to the app.
+if (localStorage.getItem('keystone_token')) {
+  window.location.replace('/app.html');
+}
+
+document.querySelectorAll('.password-toggle').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var input = document.getElementById(btn.dataset.target);
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.textContent = showing ? 'Show' : 'Hide';
+  });
+});
+
+// A fresh sign-up bounces back here with ?registered=1 so the user knows it worked.
+var params = new URLSearchParams(window.location.search);
+if (params.get('registered') === '1') {
+  var success = document.getElementById('successMsg');
+  success.textContent = 'Account created. Sign in with your new email and password.';
+  success.style.display = 'block';
+  var prefill = params.get('email');
+  if (prefill) {
+    document.getElementById('email').value = prefill;
+    document.getElementById('password').focus();
+  }
+}
+
+document.getElementById('loginForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var email = document.getElementById('email').value.trim();
+  var password = document.getElementById('password').value;
+  var errorMsg = document.getElementById('errorMsg');
+  var submitBtn = document.getElementById('submitBtn');
+
+  errorMsg.style.display = 'none';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Signing in…';
+
+  try {
+    var res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    });
+    if (!res.ok) {
+      var body = await res.json().catch(function () { return {}; });
+      throw new Error(body.message || 'Login failed');
+    }
+    var data = await res.json();
+    localStorage.setItem('keystone_token', data.token);
+    localStorage.setItem('keystone_user', JSON.stringify(data));
+    window.location.href = '/app.html';
+  } catch (err) {
+    errorMsg.textContent = err.message;
+    errorMsg.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Sign in';
+  }
+});
+</script>
+</body>
+</html>
