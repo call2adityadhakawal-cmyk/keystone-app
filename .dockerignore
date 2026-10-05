@@ -1,0 +1,7 @@
+target/
+data/
+.git/
+.DS_Store
+.settings/
+.classpath
+.project
