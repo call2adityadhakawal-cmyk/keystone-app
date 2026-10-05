@@ -36,6 +36,7 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (userRepository.count() > 0) {
+            addMeridianSites(); // existing database: only top up the extra sites
             return; // already seeded on a previous run
         }
 
@@ -72,6 +73,8 @@ public class DataSeeder implements CommandLineRunner {
         seedWorkOrder("HVAC filter change", "Routine filter change across rooftop HVAC units.",
                 Priority.LOW, WorkOrderStatus.CLOSED, meridianRetail, retailHQ, tech1, manager.getEmail());
 
+        addMeridianSites();
+
         System.out.println("=========================================================");
         System.out.println(" KEYSTONE demo data loaded. Seed logins (password Password123!):");
         System.out.println("  dispatcher@keystone.dev");
@@ -100,5 +103,26 @@ public class DataSeeder implements CommandLineRunner {
         });
         wo = workOrderRepository.save(wo);
         historyRepository.save(new WorkOrderStatusHistory(wo, null, status, actor, "Seeded demo data"));
+    }
+
+    /**
+     * Extra branches for Meridian Retail Group. Safe to run on every start: a site is only
+     * added if the company doesn't have one with that name yet, and the company itself is never duplicated.
+     */
+    private void addMeridianSites() {
+        customerRepository.findByNameIgnoreCase("Meridian Retail Group").ifPresent(meridian -> {
+            String[][] sites = {
+                    {"Meridian Mall - Bengaluru", "45 Whitefield Main Road, Bengaluru"},
+                    {"Meridian Mall - Hyderabad", "210 Banjara Hills Road No. 1, Hyderabad"},
+                    {"Meridian Store - Mysuru", "7 Sayyaji Rao Road, Mysuru"},
+                    {"Meridian Store - Mumbai", "19 Linking Road, Bandra West, Mumbai"},
+                    {"Meridian Warehouse - Hosur", "Plot 33, SIPCOT Industrial Area, Hosur"}
+            };
+            for (String[] site : sites) {
+                if (!siteRepository.existsByCustomerIdAndNameIgnoreCase(meridian.getId(), site[0])) {
+                    siteRepository.save(new Site(meridian, site[0], site[1]));
+                }
+            }
+        });
     }
 }

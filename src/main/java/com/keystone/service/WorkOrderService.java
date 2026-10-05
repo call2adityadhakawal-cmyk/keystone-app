@@ -2,6 +2,7 @@ package com.keystone.service;
 
 import com.keystone.domain.*;
 import com.keystone.dto.WorkOrderDtos;
+import com.keystone.exception.ApiExceptions.BadRequestException;
 import com.keystone.exception.ApiExceptions.ForbiddenException;
 import com.keystone.exception.ApiExceptions.IllegalTransitionException;
 import com.keystone.exception.ApiExceptions.NotFoundException;
@@ -29,6 +30,7 @@ public class WorkOrderService {
     private final CustomerRepository customerRepository;
     private final SiteRepository siteRepository;
     private final UserRepository userRepository;
+    private final AttachmentRepository attachmentRepository;
 
     private static final Map<WorkOrderStatus, EnumSet<WorkOrderStatus>> ALLOWED_TRANSITIONS = new EnumMap<>(WorkOrderStatus.class);
     static {
@@ -45,12 +47,14 @@ public class WorkOrderService {
                              WorkOrderStatusHistoryRepository historyRepository,
                              CustomerRepository customerRepository,
                              SiteRepository siteRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             AttachmentRepository attachmentRepository) {
         this.workOrderRepository = workOrderRepository;
         this.historyRepository = historyRepository;
         this.customerRepository = customerRepository;
         this.siteRepository = siteRepository;
         this.userRepository = userRepository;
+        this.attachmentRepository = attachmentRepository;
     }
 
     // ---- reads, scoped by role ----
@@ -148,6 +152,12 @@ public class WorkOrderService {
             throw new IllegalTransitionException("Cannot move a work order from " + from + " to " + toStatus);
         }
         assertRoleCanTransition(wo, toStatus, caller);
+
+        // A job can't be marked done without proof: the technician must have uploaded a photo/video first.
+        if (toStatus == WorkOrderStatus.COMPLETED
+                && !attachmentRepository.existsByWorkOrderIdAndUploadedByRole(wo.getId(), Role.TECHNICIAN)) {
+            throw new BadRequestException("Upload a proof photo or video of the finished work before marking it completed.");
+        }
 
         wo.setStatus(toStatus);
         wo = workOrderRepository.save(wo);

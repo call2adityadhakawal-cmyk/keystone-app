@@ -6,6 +6,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -69,6 +70,11 @@ public class GlobalExceptionHandler {
         Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(fe -> fieldErrors.put(fe.getField(), fe.getDefaultMessage()));
         return body(HttpStatus.BAD_REQUEST, "Validation failed", fieldErrors);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Object> tooLarge(MaxUploadSizeExceededException ex) {
+        return body(HttpStatus.BAD_REQUEST, "Max file size is 10MB.", null);
     }
 
     @ExceptionHandler(Exception.class)
